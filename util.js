@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 
 const createToken = user => {
   // Sign the JWT
@@ -15,33 +14,15 @@ const createToken = user => {
       // audience: 'api.gammer'
     },
     process.env.JWT_SECRET,
-    { algorithm: 'HS256', expiresIn: '1h' }
+    { algorithm: 'HS256', expiresIn: '2h' }
   );
-};
-
-const hashPassword = password => {
-  return new Promise((resolve, reject) => {
-    // Generate a salt at level 12 strength
-    bcrypt.genSalt(12, (err, salt) => {
-      if (err) {
-        reject(err);
-      }
-      bcrypt.hash(password, salt, (err, hash) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(hash);
-      });
-    });
-  });
 };
 
 const verifyPassword = (
   passwordAttempt,
-  hashedPassword
+  dbPassword
 ) => {
-  return passwordAttempt === hashedPassword
-  // return bcrypt.compare(passwordAttempt, hashedPassword);
+  return passwordAttempt === dbPassword
 };
 
 const requireAdmin = (req, res, next) => {
@@ -60,7 +41,6 @@ const requireAdmin = (req, res, next) => {
 
 module.exports = {
   createToken,
-  hashPassword,
   verifyPassword,
   requireAdmin
 };

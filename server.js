@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+// const jwtDecode = require('jwt-js-decode');
 const jwtDecode = require('jwt-decode');
+const jwtJsDecode = require('jwt-js-decode');
 const mongoose = require('mongoose');
 const jwt = require('express-jwt');
 const cookieParser = require('cookie-parser')
@@ -17,7 +19,6 @@ const Fixture = require('./data/Fixture');
 
 const {
   createToken,
-  hashPassword,
   verifyPassword
 } = require('./util');
 
@@ -28,16 +29,57 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(cookieParser());
 
+//  Register a school
+app.post('/api/register_school', async (req, res) => {
+  try {
+    const { firstName, lastName, schoolName, state, year, email, phoneNumber } = req.body;
+
+    const existingSchool = await RegisterSchool.findOne({
+      schoolName
+    }).lean();
+
+    if (existingSchool) {
+      return res
+        .status(400)
+        .json({ message: 'School already registered' });
+    }
+
+    const schoolData = {
+      gameMasterFirstName: firstName,
+      gameMasterLastName: lastName,
+      schoolName,
+      state,
+      yearFounded: year,
+      email,
+      phoneNumber,
+      accepted: false
+    };
+
+    const registeredSchool = new RegisterSchool(schoolData);
+    await registeredSchool.save();
+
+    res.status(201).json({
+      message: 'Successfully Registered!',
+      registeredSchool
+    });
+  } catch (err) {
+    // console.log(err);
+    return res.status(400).json({
+      message: 'There was a problem registering the school'
+    });
+  }
+});
+
 // Login an admin
 app.post('/api/authenticate', async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(req.body)
+    // console.log(req, 'req')
 
     const user = await User.findOne({
       email
     }).lean();
-    console.log(user)
+    // console.log(user)
 
     if (!user) {
       return res.status(403).json({
@@ -49,7 +91,7 @@ app.post('/api/authenticate', async (req, res) => {
       password,
       user.password
     );
-    console.log(password, user.password)
+    // console.log(password, user.password)
 
     if (passwordValid) {
       const { password, ...rest } = user;
@@ -57,12 +99,13 @@ app.post('/api/authenticate', async (req, res) => {
 
       const token = createToken(userInfo);
 
-      const decodedToken = jwtDecode(token);
-      const expiresAt = decodedToken.exp;
+      const decodedToken = jwtJsDecode.jwtDecode(token);
+      // console.log(decodedToken.payload.exp > decodedToken.payload.iat)
+      const expiresAt = decodedToken.payload.exp;
 
-      res.cookie('token', token, {
-        httpOnly: true
-      })
+      // res.cookie('token', token, {
+      //   httpOnly: true
+      // })
 
       res.json({
         message: 'Authentication successful!',
@@ -90,84 +133,84 @@ app.post('/api/authenticate', async (req, res) => {
 });
 
 // Register a school
-app.post('/api/signup', async (req, res) => {
-  try {
-    const { email } = req.body;
+// app.post('/api/signup', async (req, res) => {
+//   try {
+//     const { email } = req.body;
 
-    const hashedPassword = await hashPassword(
-      req.body.password
-    );
+//     const hashedPassword = await hashPassword(
+//       req.body.password
+//     );
 
-    const userData = {
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      role: 'admin'
-    };
+//     const userData = {
+//       email: email.toLowerCase(),
+//       password: hashedPassword,
+//       role: 'admin'
+//     };
 
-    const existingEmail = await User.findOne({
-      email: userData.email
-    }).lean();
+//     const existingEmail = await User.findOne({
+//       email: userData.email
+//     }).lean();
 
-    if (existingEmail) {
-      return res
-        .status(400)
-        .json({ message: 'Email already exists' });
-    }
+//     if (existingEmail) {
+//       return res
+//         .status(400)
+//         .json({ message: 'Email already exists' });
+//     }
 
-    const newUser = new User(userData);
-    const savedUser = await newUser.save();
+//     const newUser = new User(userData);
+//     const savedUser = await newUser.save();
 
-    if (savedUser) {
-      const token = createToken(savedUser);
-      const decodedToken = jwtDecode(token);
-      const expiresAt = decodedToken.exp;
+//     if (savedUser) {
+//       const token = createToken(savedUser);
+//       const decodedToken = jwtDecode(token);
+//       const expiresAt = decodedToken.exp;
 
-      const {
-        email,
-        role
-      } = savedUser;
+//       const {
+//         email,
+//         role
+//       } = savedUser;
 
-      const userInfo = {
-        email,
-        role
-      };
+//       const userInfo = {
+//         email,
+//         role
+//       };
 
-      res.cookie('token', token, {
-        httpOnly: true
-      })
+//       res.cookie('token', token, {
+//         httpOnly: true
+//       })
 
-      return res.json({
-        message: 'User created!',
-        token,
-        userInfo,
-        expiresAt
-      });
-    } else {
-      return res.status(400).json({
-        message: 'There was a problem creating your account'
-      });
-    }
-  }
-  catch (err) {
-    return res.status(400).json({
-      message: 'There was a problem creating your account'
-    });
-  }
-});
+//       return res.json({
+//         message: 'User created!',
+//         token,
+//         userInfo,
+//         expiresAt
+//       });
+//     } else {
+//       return res.status(400).json({
+//         message: 'There was a problem creating your account'
+//       });
+//     }
+//   }
+//   catch (err) {
+//     return res.status(400).json({
+//       message: 'There was a problem creating your account'
+//     });
+//   }
+// });
 
 const attachUser = (req, res, next) => {
-  // const token = req.headers.authorization;  only with localStorage
-  const token = req.cookies.token
+  const token = req.headers.authorization.slice(7); // only with localStorage
+  // const token = req.cookies.token
   if(!token) {
     return res.status(401).json({message: 'Authentication invalid'})
   }
   // const decodedToken = jwtDecode(token.slice(7));   only with localStorage
-  const decodedToken = jwtDecode(token);
+  const decodedToken = jwtJsDecode.jwtDecode(token);
   if(!decodedToken) {
     return res.status(401).json({message: 'There was a problem authorizing your token'})
   } else {
     req.user = decodedToken;
-    console.log(decodedToken)
+    // console.log(decodedToken)
     next();
   }
 }
@@ -177,7 +220,8 @@ app.use(attachUser);
 // Verify Token
 const checkJwt = jwt({
   secret: process.env.JWT_SECRET,
-  getToken: req => req.cookies.token
+  getToken: req => req.headers.authorization.slice(7)
+  // getToken: req => req.cookies.token
 })
 
 // app.use(csrfProtection);
@@ -217,47 +261,6 @@ app.patch('/api/accept_school', async (req, res) => {
     });
   } catch (err) {
     return res.status(400).json({ error: err });
-  }
-});
-
-//  Register a school
-app.post('/api/register_school', async (req, res) => {
-  try {
-    const { firstName, lastName, schoolName, state, year, email, phoneNumber } = req.body;
-
-    const existingSchool = await RegisterSchool.findOne({
-      schoolName
-    }).lean();
-
-    if (existingSchool) {
-      return res
-        .status(400)
-        .json({ message: 'School already registered' });
-    }
-
-    const schoolData = {
-      gameMasterFirstName: firstName,
-      gameMasterLastName: lastName,
-      schoolName,
-      state,
-      yearFounded: year,
-      email,
-      phoneNumber,
-      accepted: false
-    };
-
-    const registeredSchool = new RegisterSchool(schoolData);
-    await registeredSchool.save();
-
-    res.status(201).json({
-      message: 'Successfully Registered!',
-      registeredSchool
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({
-      message: 'There was a problem registering the school'
-    });
   }
 });
 
