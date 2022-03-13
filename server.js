@@ -318,6 +318,7 @@ app.get('/api/match_fixtures', async (req, res) => {
 })
 
 async function connect() {
+  const PORT = process.env.PORT || 3001
   try {
     mongoose.Promise = global.Promise;
     await mongoose.connect(process.env.ATLAS_URL, {
@@ -328,8 +329,11 @@ async function connect() {
     console.log('Mongoose connected');
   } catch (err) {
   }
-  app.listen(3001);
-  console.log('API listening on localhost:3001');
+  
+
+  app.listen(PORT, () => console.log(`Server has started on ${PORT}.`));
+  // app.listen(3001);
+  // console.log('API listening on localhost:3001');
 }
 
 connect();
