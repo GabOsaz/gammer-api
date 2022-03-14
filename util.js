@@ -9,9 +9,7 @@ const createToken = user => {
     {
       sub: user._id,
       email: user.email,
-      role: user.role,
-      // issuer: 'api.gammer',
-      // audience: 'api.gammer'
+      role: user.role
     },
     process.env.JWT_SECRET,
     { algorithm: 'HS256', expiresIn: '2h' }

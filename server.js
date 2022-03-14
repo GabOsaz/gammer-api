@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-// const jwtDecode = require('jwt-js-decode');
-const jwtDecode = require('jwt-decode');
 const jwtJsDecode = require('jwt-js-decode');
 const mongoose = require('mongoose');
 const jwt = require('express-jwt');
@@ -63,7 +61,6 @@ app.post('/api/register_school', async (req, res) => {
       registeredSchool
     });
   } catch (err) {
-    // console.log(err);
     return res.status(400).json({
       message: 'There was a problem registering the school'
     });
@@ -100,12 +97,7 @@ app.post('/api/authenticate', async (req, res) => {
       const token = createToken(userInfo);
 
       const decodedToken = jwtJsDecode.jwtDecode(token);
-      // console.log(decodedToken.payload.exp > decodedToken.payload.iat)
       const expiresAt = decodedToken.payload.exp;
-
-      // res.cookie('token', token, {
-      //   httpOnly: true
-      // })
 
       res.json({
         message: 'Authentication successful!',
@@ -132,79 +124,11 @@ app.post('/api/authenticate', async (req, res) => {
   }
 });
 
-// Register a school
-// app.post('/api/signup', async (req, res) => {
-//   try {
-//     const { email } = req.body;
-
-//     const hashedPassword = await hashPassword(
-//       req.body.password
-//     );
-
-//     const userData = {
-//       email: email.toLowerCase(),
-//       password: hashedPassword,
-//       role: 'admin'
-//     };
-
-//     const existingEmail = await User.findOne({
-//       email: userData.email
-//     }).lean();
-
-//     if (existingEmail) {
-//       return res
-//         .status(400)
-//         .json({ message: 'Email already exists' });
-//     }
-
-//     const newUser = new User(userData);
-//     const savedUser = await newUser.save();
-
-//     if (savedUser) {
-//       const token = createToken(savedUser);
-//       const decodedToken = jwtDecode(token);
-//       const expiresAt = decodedToken.exp;
-
-//       const {
-//         email,
-//         role
-//       } = savedUser;
-
-//       const userInfo = {
-//         email,
-//         role
-//       };
-
-//       res.cookie('token', token, {
-//         httpOnly: true
-//       })
-
-//       return res.json({
-//         message: 'User created!',
-//         token,
-//         userInfo,
-//         expiresAt
-//       });
-//     } else {
-//       return res.status(400).json({
-//         message: 'There was a problem creating your account'
-//       });
-//     }
-//   }
-//   catch (err) {
-//     return res.status(400).json({
-//       message: 'There was a problem creating your account'
-//     });
-//   }
-// });
-
 const attachUser = (req, res, next) => {
-  const token = req.headers.authorization.slice(7); // only with localStorage
-  // const token = req.cookies.token
+  const token = req.headers.authorization.slice(7); 
   if(!token) {
     return res.status(401).json({message: 'Authentication invalid'})
   }
-  // const decodedToken = jwtDecode(token.slice(7));   only with localStorage
   const decodedToken = jwtJsDecode.jwtDecode(token);
   if(!decodedToken) {
     return res.status(401).json({message: 'There was a problem authorizing your token'})
@@ -221,19 +145,7 @@ app.use(attachUser);
 const checkJwt = jwt({
   secret: process.env.JWT_SECRET,
   getToken: req => req.headers.authorization.slice(7)
-  // getToken: req => req.cookies.token
 })
-
-// app.use(csrfProtection);
-
-// app.get('api/csrf-token', (req, res) => {
-//   res.json({ csrfToken: req.csrfToken()});
-// })
-
-// app.use((req, res, next) => {
-//   console.log(req.header);
-//   next();
-// })
 
 app.use(checkJwt)
 
@@ -329,14 +241,11 @@ async function connect() {
       useUnifiedTopology: true,
       useFindAndModify: false
     });
-    console.log('Mongoose connected');
   } catch (err) {
   }
   
 
   app.listen(PORT, () => console.log(`Server has started on ${PORT}.`));
-  // app.listen(3001);
-  // console.log('API listening on localhost:3001');
 }
 
 connect();
